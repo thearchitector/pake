@@ -38,6 +38,21 @@ func fromBigInt(point *big.Int) []byte {
 	return swapEndianness(point.FillBytes(buf))
 }
 
+func calculatev(u *big.Int) *big.Int {
+	var rhs, lrhs, mrhs, rrhs big.Int
+
+	lrhs.Exp(u, pow3, nil) // u^3
+	mrhs.Mul(u, u)         // u^2
+	rrhs.Mul(&mrhs, A)     // u^2*486662
+
+	rhs.Add(&lrhs, &rrhs) // u^3 + u^2*486662
+	rhs.Add(&rhs, u)      // u^3 + u^2*486662 + u
+	rhs.Mod(&rhs, p)      // u^3 + u^2*486662 + u (mod p)
+
+	// u^3 + u^2*486662 + u (mod p)
+	return &rhs
+}
+
 /* interface implementations */
 
 type _c25519 struct {
@@ -63,7 +78,10 @@ func (curve _c25519) ScalarMult(Bx, _ *big.Int, scalar []byte) (*big.Int, *big.I
 }
 
 func (curve _c25519) IsOnCurve(x, y *big.Int) bool {
-	return false
+	lhs := new(big.Int).Exp(y, pow2, p)
+	rhs := calculatev(x)
+	// v^2 (mod p) = u^3 + u^2*486662 + u (mod p)
+	return lhs.Cmp(rhs) == 0
 }
 
 /* singleton initialization */
