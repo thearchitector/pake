@@ -66,13 +66,13 @@ func (p *Pake) Public() *Pake {
 
 // AvailableCurves returns available curves
 func AvailableCurves() []string {
-	return []string{"p521", "p256", "p384", "siec"}
+	return []string{"curve25519", "p521", "p256", "p384", "siec"}
 }
 
 // InitCurve will take the secret weak passphrase (pw) to initialize
 // the points on the elliptic curve. The role is set to either
 // 0 for the sender or 1 for the recipient.
-// The curve can be siec,  p521, p256, p384
+// The curve can be curve25519, siec, p521, p256, p384
 func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.Int, Uy *big.Int, Vx *big.Int, Vy *big.Int, err error) {
 	switch curve {
 	case "p521":
@@ -103,6 +103,13 @@ func initCurve(curve string) (ellipticCurve EllipticCurve, P *big.Int, Ux *big.I
 		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
 		Vy, _ = new(big.Int).SetString("19593504966619549205903364028255899745298716108914514072669075231742699650911", 10)
 		P = siec.SIEC255().Params().P
+	case "curve25519":
+		ellipticCurve = Curve25519()
+		Ux, _ = new(big.Int).SetString("793136080485469241208656611513609866400481671854", 10)
+		Uy, _ = new(big.Int).SetString("10652526265787470154425996210700542961928029230996359640069967802965733206444", 10)
+		Vx, _ = new(big.Int).SetString("1086685267857089638167386722555472967068468061489", 10)
+		Vy, _ = new(big.Int).SetString("37224361612322642494225506585912767208740592163316513552703274636161220046745", 10)
+		P = Curve25519().P
 	default:
 		err = errors.New("no such curve")
 		return
