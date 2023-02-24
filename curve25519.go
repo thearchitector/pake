@@ -29,12 +29,14 @@ func toBigInt(point []byte) *big.Int {
 	buf := make([]byte, 32)
 	copy(buf, point)
 	buf[len(buf)-1] &= (1 << 7) - 1
-	return new(big.Int).SetBytes(swapEndianness(buf))
+	P := new(big.Int).SetBytes(swapEndianness(buf))
+	P.Mod(P, p)
+	return P
 }
 
 func fromBigInt(point *big.Int) []byte {
 	buf := make([]byte, 32)
-	// point.Mod(point, p)
+	point.Mod(point, p)
 	return swapEndianness(point.FillBytes(buf))
 }
 
@@ -60,7 +62,34 @@ type _c25519 struct {
 }
 
 func (curve _c25519) Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int) {
-	return nil, nil
+	// https://en.wikipedia.org/wiki/Montgomery_curve#Addition
+	var y2my1, x2mx1, sqy2my1, sqx2mx1, x3 big.Int
+
+	y2my1.Sub(y2, y1)
+	x2mx1.Sub(x2, x1)
+	sqy2my1.Mul(&y2my1, &y2my1)
+	sqx2mx1.Mul(&x2mx1, &x2mx1)
+	x3.Div(&sqy2my1, &sqx2mx1)
+	x3.Sub(&x3, A)
+	x3.Sub(&x3, x1)
+	x3.Sub(&x3, x2)
+	x3.Mod(&x3, p)
+
+	var lhs, rhs, y3 big.Int
+
+	lhs.Mul(x1, x1)
+	lhs.Add(&lhs, x2)
+	lhs.Add(&lhs, A)
+	lhs.Mul(&lhs, &y2my1)
+
+	lhs.Div(&lhs, &x2mx1)
+	rhs.Mul(&y2my1, &y2my1)
+	rhs.Div(&rhs, new(big.Int).Mul(&x2mx1, &x2mx1))
+	rhs.Sub(&rhs, y1)
+	y3.Sub(&lhs, &rhs)
+	y3.Mod(&y3, p)
+
+	return &x3, &y3
 }
 
 func (curve _c25519) ScalarBaseMult(scalar []byte) (*big.Int, *big.Int) {
@@ -93,7 +122,7 @@ func initCurve25519() {
 	crv25519.P = p
 }
 
-func Curve25519() EllipticCurve {
+func Curve25519() _c25519 {
 	initialize.Do(initCurve25519)
 	return crv25519
 }
