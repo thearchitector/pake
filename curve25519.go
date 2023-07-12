@@ -63,30 +63,25 @@ type _c25519 struct {
 
 func (curve _c25519) Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int) {
 	// https://en.wikipedia.org/wiki/Montgomery_curve#Addition
-	var y2my1, x2mx1, sqy2my1, sqx2mx1, x3 big.Int
+	var y2my1, x2mx1, lambda big.Int
 
 	y2my1.Sub(y2, y1)
 	x2mx1.Sub(x2, x1)
-	sqy2my1.Mul(&y2my1, &y2my1)
-	sqx2mx1.Mul(&x2mx1, &x2mx1)
-	x3.Div(&sqy2my1, &sqx2mx1)
-	x3.Sub(&x3, A)
+	lambda.Div(&y2my1, &x2mx1)
+	lambda.Mod(&lambda, p)
+
+	var x3, y3 big.Int
+
+	// x3 = lambda^2 - x1 - x2
+	x3.Mul(&lambda, &lambda)
 	x3.Sub(&x3, x1)
 	x3.Sub(&x3, x2)
 	x3.Mod(&x3, p)
 
-	var lhs, rhs, y3 big.Int
-
-	lhs.Mul(x1, x1)
-	lhs.Add(&lhs, x2)
-	lhs.Add(&lhs, A)
-	lhs.Mul(&lhs, &y2my1)
-
-	lhs.Div(&lhs, &x2mx1)
-	rhs.Mul(&y2my1, &y2my1)
-	rhs.Div(&rhs, new(big.Int).Mul(&x2mx1, &x2mx1))
-	rhs.Sub(&rhs, y1)
-	y3.Sub(&lhs, &rhs)
+	// y3 = lambda * (x1 - x3) - y1
+	y3.Sub(x1, &x3)
+	y3.Mul(&lambda, &y3)
+	y3.Sub(&y3, y1)
 	y3.Mod(&y3, p)
 
 	return &x3, &y3
@@ -95,14 +90,14 @@ func (curve _c25519) Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int) {
 func (curve _c25519) ScalarBaseMult(scalar []byte) (*big.Int, *big.Int) {
 	u, _ := curve25519.X25519(scalar, curve25519.Basepoint)
 	U := toBigInt(u)
-	V := new(big.Int)
+	V := calculatev(U)
 	return U, V
 }
 
 func (curve _c25519) ScalarMult(Bx, _ *big.Int, scalar []byte) (*big.Int, *big.Int) {
 	u, _ := curve25519.X25519(scalar, fromBigInt(Bx))
 	U := toBigInt(u)
-	V := new(big.Int)
+	V := calculatev(U)
 	return U, V
 }
 
