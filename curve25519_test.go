@@ -44,14 +44,53 @@ func TestScalarMult1(t *testing.T) {
 	}
 }
 
-func TestScalarMult2(t *testing.T) {
-	// same as above, but test vector 2
-	k, _ := new(big.Int).SetString("28948022309329048855892746252171976963317496166410141009864396001978282409992", 10)
+func TestScalarMult2_1(t *testing.T) {
+	// same as above, but test vector 2-1
+	k := big.NewInt(9)
 	u := big.NewInt(9)
+
 	expected, _ := new(big.Int).SetString("54815864700279561125610391355931320566748822376190344121911385527384361806914", 10)
 
 	var temp big.Int
 	for i := 0; i < 1; i++ {
+		temp.Set(k)
+		k, _ = Curve25519().ScalarMult(u, nil, fromBigInt(k))
+		u.Set(&temp)
+	}
+
+	if expected.Cmp(k) != 0 {
+		t.Error("iterative test failed")
+	}
+}
+
+func TestScalarMult2_2(t *testing.T) {
+	// same as above, but test vector 2-2
+	k := big.NewInt(9)
+	u := big.NewInt(9)
+
+	expected, _ := new(big.Int).SetString("36715658984098675622644846447287739160727487991947607163673193504554999958632", 10)
+
+	var temp big.Int
+	for i := 0; i < 1000; i++ {
+		temp.Set(k)
+		k, _ = Curve25519().ScalarMult(u, nil, fromBigInt(k))
+		u.Set(&temp)
+	}
+
+	if expected.Cmp(k) != 0 {
+		t.Error("iterative test failed")
+	}
+}
+
+func TestScalarMult2_3(t *testing.T) {
+	// same as above, but test vector 2-3
+	k := big.NewInt(9)
+	u := big.NewInt(9)
+
+	expected, _ := new(big.Int).SetString("16432383832604228183214538433420724309548692366517210566425561007471436315004", 10)
+
+	var temp big.Int
+	for i := 0; i < 1000000; i++ {
 		temp.Set(k)
 		k, _ = Curve25519().ScalarMult(u, nil, fromBigInt(k))
 		u.Set(&temp)
